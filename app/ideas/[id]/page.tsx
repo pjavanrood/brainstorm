@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { createClient } from "@/lib/supabase/server"
 import { TagBadge } from "@/components/TagBadge"
 import { CommentThread } from "@/components/CommentThread"
 import { MarkdownPreview } from "@/components/MarkdownPreview"
@@ -20,6 +21,9 @@ function timeAgo(date: Date | string) {
 
 export default async function IdeaPage({ params }: PageProps) {
   const { id } = await params
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const [idea, comments] = await Promise.all([
     prisma.idea.findUnique({
@@ -62,10 +66,11 @@ export default async function IdeaPage({ params }: PageProps) {
             <span className="font-medium text-ink">{idea.author.name}</span>
             <span>{timeAgo(idea.createdAt)}</span>
           </div>
-          {idea.tags.length > 0 && (
-            <div className="flex gap-3 mt-3">
+          {(idea.marketType || idea.tags.length > 0) && (
+            <div className="flex gap-3 mt-3 flex-wrap">
+              {idea.marketType && <TagBadge name={idea.marketType} variant="market" />}
               {idea.tags.map(({ tag }: { tag: { id: string; name: string } }) => (
-                <TagBadge key={tag.name} name={tag.name} />
+                <TagBadge key={tag.name} name={tag.name} variant="field" />
               ))}
             </div>
           )}
@@ -81,7 +86,7 @@ export default async function IdeaPage({ params }: PageProps) {
           Comments ({comments.length})
         </h2>
         <div className="border-t border-hairline">
-          <CommentThread comments={serializedComments} ideaId={id} />
+          <CommentThread comments={serializedComments} ideaId={id} currentUserId={user?.id ?? null} />
         </div>
       </section>
     </div>

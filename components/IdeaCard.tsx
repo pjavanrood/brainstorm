@@ -7,6 +7,7 @@ interface IdeaCardProps {
     title: string
     oneLiner: string
     createdAt: Date | string
+    marketType: string | null
     author: { name: string | null }
     tags: { tag: { name: string } }[]
     _count: { comments: number }
@@ -34,10 +35,11 @@ export function IdeaCard({ idea }: IdeaCardProps) {
             {idea.title}
           </h2>
           <p className="text-muted text-sm mt-0.5 leading-snug">{idea.oneLiner}</p>
-          {idea.tags.length > 0 && (
-            <div className="flex gap-3 mt-2">
+          {(idea.marketType || idea.tags.length > 0) && (
+            <div className="flex gap-3 mt-2 flex-wrap">
+              {idea.marketType && <TagBadge name={idea.marketType} variant="market" />}
               {idea.tags.map(({ tag }) => (
-                <TagBadge key={tag.name} name={tag.name} />
+                <TagBadge key={tag.name} name={tag.name} variant="field" />
               ))}
             </div>
           )}

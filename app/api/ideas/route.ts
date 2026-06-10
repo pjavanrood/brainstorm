@@ -29,10 +29,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { title, oneLiner, explanation, tags } = await req.json()
+  const { title, oneLiner, explanation, marketType, fieldTagIds = [], customField } = await req.json()
 
   if (!title?.trim() || !oneLiner?.trim() || !explanation?.trim()) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+  }
+
+  const normalize = (s: string) => s.trim().charAt(0).toUpperCase() + s.trim().slice(1)
+
+  let allFieldIds: string[] = [...fieldTagIds]
+  if (customField?.trim()) {
+    const name = normalize(customField)
+    const tag = await prisma.tag.upsert({
+      where: { name },
+      update: {},
+      create: { name, type: "FIELD" },
+    })
+    allFieldIds = [...allFieldIds, tag.id]
   }
 
   const idea = await prisma.idea.create({
@@ -41,9 +54,10 @@ export async function POST(req: NextRequest) {
       oneLiner: oneLiner.trim(),
       explanation: explanation.trim(),
       authorId: user.id,
-      tags: tags?.length
+      marketType: marketType?.trim() || null,
+      tags: allFieldIds.length
         ? {
-            create: tags.map((tagId: string) => ({
+            create: allFieldIds.map((tagId: string) => ({
               tag: { connect: { id: tagId } },
             })),
           }

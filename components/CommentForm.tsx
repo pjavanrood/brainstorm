@@ -11,6 +11,7 @@ interface CommentFormProps {
   onSuccess?: () => void
   placeholder?: string
   autoFocus?: boolean
+  currentUserId: string | null
 }
 
 export function CommentForm({
@@ -19,6 +20,7 @@ export function CommentForm({
   onSuccess,
   placeholder = "Share your thoughts…",
   autoFocus = false,
+  currentUserId,
 }: CommentFormProps) {
   const [user, setUser] = useState<User | null>(null)
   const [authLoaded, setAuthLoaded] = useState(false)
@@ -28,10 +30,6 @@ export function CommentForm({
   const supabase = createClient()
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
-      setAuthLoaded(true)
-    })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null)
       setAuthLoaded(true)
@@ -46,11 +44,14 @@ export function CommentForm({
     })
   }
 
-  if (!authLoaded) {
+  // Use server-provided userId for initial render; fall back to client-side auth once loaded
+  const isLoggedIn = authLoaded ? !!user : !!currentUserId
+
+  if (!authLoaded && !currentUserId) {
     return null
   }
 
-  if (!user) {
+  if (!isLoggedIn) {
     return (
       <p className="text-sm text-muted">
         <button

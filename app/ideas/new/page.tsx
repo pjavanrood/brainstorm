@@ -14,15 +14,21 @@ interface Tag {
   name: string
 }
 
+const MARKET_OPTIONS = ["Consumer", "B2B", "B2B2C", "Enterprise"]
+
 export default function NewIdeaPage() {
   const [user, setUser] = useState<User | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const router = useRouter()
-  const [tags, setTags] = useState<Tag[]>([])
+  const [fieldTags, setFieldTags] = useState<Tag[]>([])
   const [title, setTitle] = useState("")
   const [oneLiner, setOneLiner] = useState("")
   const [explanation, setExplanation] = useState("")
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [marketType, setMarketType] = useState("")
+  const [marketOtherText, setMarketOtherText] = useState("")
+  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>([])
+  const [fieldOtherActive, setFieldOtherActive] = useState(false)
+  const [fieldOtherText, setFieldOtherText] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const supabase = createClient()
@@ -36,7 +42,7 @@ export default function NewIdeaPage() {
   }, [])
 
   useEffect(() => {
-    fetch("/api/tags").then((r) => r.json()).then(setTags)
+    fetch("/api/tags").then((r) => r.json()).then(setFieldTags)
   }, [])
 
   function signIn() {
@@ -62,16 +68,37 @@ export default function NewIdeaPage() {
     )
   }
 
-  function toggleTag(id: string) {
-    setSelectedTags((prev) =>
+  function toggleMarket(option: string) {
+    if (marketType === option) {
+      setMarketType("")
+    } else {
+      setMarketType(option)
+      if (option !== "Other") setMarketOtherText("")
+    }
+  }
+
+  function toggleField(id: string) {
+    setSelectedFieldIds((prev) =>
       prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
     )
+  }
+
+  function toggleFieldOther() {
+    setFieldOtherActive((prev) => {
+      if (prev) setFieldOtherText("")
+      return !prev
+    })
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!title.trim() || !oneLiner.trim() || !explanation.trim()) {
       setError("Please fill in all required fields.")
+      return
+    }
+    const effectiveMarket = marketType === "Other" ? marketOtherText.trim() : marketType
+    if (marketType === "Other" && !effectiveMarket) {
+      setError("Please describe your market type.")
       return
     }
     setLoading(true)
@@ -81,7 +108,14 @@ export default function NewIdeaPage() {
       const res = await fetch("/api/ideas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, oneLiner, explanation, tags: selectedTags }),
+        body: JSON.stringify({
+          title,
+          oneLiner,
+          explanation,
+          marketType: effectiveMarket || null,
+          fieldTagIds: selectedFieldIds,
+          customField: fieldOtherActive && fieldOtherText.trim() ? fieldOtherText.trim() : undefined,
+        }),
       })
       if (!res.ok) throw new Error("Failed to post")
       const idea = await res.json()
@@ -91,6 +125,10 @@ export default function NewIdeaPage() {
       setLoading(false)
     }
   }
+
+  const btnBase = "text-xs font-medium px-3 py-1 border transition-colors"
+  const btnActive = "border-accent text-accent"
+  const btnInactive = "border-hairline text-muted hover:border-ink hover:text-ink"
 
   return (
     <div className="max-w-prose mx-auto px-6 py-12">
@@ -141,27 +179,73 @@ export default function NewIdeaPage() {
           </div>
         </div>
 
-        {tags.length > 0 && (
+        <div>
+          <label className="block text-xs font-medium uppercase tracking-widest text-muted mb-3">
+            Market
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {MARKET_OPTIONS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => toggleMarket(option)}
+                className={`${btnBase} ${marketType === option ? btnActive : btnInactive}`}
+              >
+                {option}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => toggleMarket("Other")}
+              className={`${btnBase} ${marketType === "Other" ? btnActive : btnInactive}`}
+            >
+              Other
+            </button>
+          </div>
+          {marketType === "Other" && (
+            <input
+              type="text"
+              value={marketOtherText}
+              onChange={(e) => setMarketOtherText(e.target.value.slice(0, 30))}
+              placeholder="Describe your market (30 chars)"
+              className="mt-2 w-full text-sm text-ink bg-base border border-hairline px-3 py-2 focus:outline-none focus:border-accent transition-colors placeholder:text-muted"
+            />
+          )}
+        </div>
+
+        {fieldTags.length > 0 && (
           <div>
             <label className="block text-xs font-medium uppercase tracking-widest text-muted mb-3">
-              Tags
+              Field
             </label>
             <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
+              {fieldTags.map((tag) => (
                 <button
                   key={tag.id}
                   type="button"
-                  onClick={() => toggleTag(tag.id)}
-                  className={`text-xs font-medium px-3 py-1 border transition-colors ${
-                    selectedTags.includes(tag.id)
-                      ? "border-accent text-accent"
-                      : "border-hairline text-muted hover:border-ink hover:text-ink"
-                  }`}
+                  onClick={() => toggleField(tag.id)}
+                  className={`${btnBase} ${selectedFieldIds.includes(tag.id) ? btnActive : btnInactive}`}
                 >
                   {tag.name}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={toggleFieldOther}
+                className={`${btnBase} ${fieldOtherActive ? btnActive : btnInactive}`}
+              >
+                Other
+              </button>
             </div>
+            {fieldOtherActive && (
+              <input
+                type="text"
+                value={fieldOtherText}
+                onChange={(e) => setFieldOtherText(e.target.value.slice(0, 30))}
+                placeholder="Describe your field (30 chars)"
+                className="mt-2 w-full text-sm text-ink bg-base border border-hairline px-3 py-2 focus:outline-none focus:border-accent transition-colors placeholder:text-muted"
+              />
+            )}
           </div>
         )}
 

@@ -4,17 +4,18 @@ import { PrismaPg } from "@prisma/adapter-pg"
 const adapter = new PrismaPg(process.env.DATABASE_URL!)
 const prisma = new PrismaClient({ adapter })
 
-const TAGS = ["B2B", "SaaS", "Consumer", "FinTech", "DeepTech", "Marketplace", "Developer Tools"]
+const FIELD_TAGS = ["AI", "Fintech", "Health", "EdTech", "Climate", "Gaming"]
 
 async function main() {
-  for (const name of TAGS) {
+  await prisma.tag.deleteMany()
+  for (const name of FIELD_TAGS) {
     await prisma.tag.upsert({
       where: { name },
-      update: {},
-      create: { name },
+      update: { type: "FIELD" },
+      create: { name, type: "FIELD" },
     })
   }
-  console.log(`Seeded ${TAGS.length} tags.`)
+  console.log(`Seeded ${FIELD_TAGS.length} field tags.`)
 }
 
 main()

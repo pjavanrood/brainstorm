@@ -4,7 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -17,6 +19,10 @@ model User {
   comments  Comment[]
 }
 
+enum TagType {
+  FIELD
+}
+
 model Idea {
   id          String    @id @default(cuid())
   title       String
@@ -24,6 +30,7 @@ model Idea {
   explanation String
   createdAt   DateTime  @default(now())
   authorId    String
+  marketType  String?
   author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   tags        IdeaTag[]
   comments    Comment[]
@@ -32,6 +39,7 @@ model Idea {
 model Tag {
   id    String    @id @default(cuid())
   name  String    @unique
+  type  TagType   @default(FIELD)
   ideas IdeaTag[]
 }
 

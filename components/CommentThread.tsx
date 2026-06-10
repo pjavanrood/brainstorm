@@ -34,7 +34,7 @@ function timeAgo(date: string) {
   return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 }
 
-function CommentItem({ comment, ideaId }: { comment: Comment; ideaId: string }) {
+function CommentItem({ comment, ideaId, currentUserId }: { comment: Comment; ideaId: string; currentUserId: string | null }) {
   const [replying, setReplying] = useState(false)
 
   return (
@@ -58,6 +58,7 @@ function CommentItem({ comment, ideaId }: { comment: Comment; ideaId: string }) 
           <CommentForm
             ideaId={ideaId}
             parentId={comment.id}
+            currentUserId={currentUserId}
             autoFocus
             placeholder="Write a reply…"
             onSuccess={() => setReplying(false)}
@@ -85,14 +86,15 @@ function CommentItem({ comment, ideaId }: { comment: Comment; ideaId: string }) 
 interface CommentThreadProps {
   comments: Comment[]
   ideaId: string
+  currentUserId: string | null
 }
 
-export function CommentThread({ comments, ideaId }: CommentThreadProps) {
+export function CommentThread({ comments, ideaId, currentUserId }: CommentThreadProps) {
   return (
     <div>
       <div className="divide-y divide-hairline">
         {comments.map((comment) => (
-          <CommentItem key={comment.id} comment={comment} ideaId={ideaId} />
+          <CommentItem key={comment.id} comment={comment} ideaId={ideaId} currentUserId={currentUserId} />
         ))}
       </div>
 
@@ -101,7 +103,7 @@ export function CommentThread({ comments, ideaId }: CommentThreadProps) {
       )}
 
       <div className="mt-6 pt-6 border-t border-hairline">
-        <CommentForm ideaId={ideaId} />
+        <CommentForm ideaId={ideaId} currentUserId={currentUserId} />
       </div>
     </div>
   )
