@@ -17,6 +17,12 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "Brainstorm — Startup Ideas",
   description: "Share and evaluate early-stage startup ideas.",
+  icons: { icon: "/icon.png" },
+  openGraph: {
+    title: "Brainstorm — Startup Ideas",
+    description: "Share and evaluate early-stage startup ideas.",
+    images: [{ url: "/icon.png" }],
+  },
 }
 
 export default function RootLayout({
