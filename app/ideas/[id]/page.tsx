@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { TagBadge } from "@/components/TagBadge"
 import { CommentThread } from "@/components/CommentThread"
 import { MarkdownPreview } from "@/components/MarkdownPreview"
+import { DeleteIdeaButton } from "@/components/DeleteIdeaButton"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -72,6 +73,11 @@ export default async function IdeaPage({ params }: PageProps) {
               {idea.tags.map(({ tag }: { tag: { id: string; name: string } }) => (
                 <TagBadge key={tag.name} name={tag.name} variant="field" />
               ))}
+            </div>
+          )}
+          {user?.id === idea.author.id && (
+            <div className="mt-4">
+              <DeleteIdeaButton ideaId={id} />
             </div>
           )}
         </header>

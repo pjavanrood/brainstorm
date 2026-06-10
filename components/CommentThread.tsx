@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { CommentForm } from "./CommentForm"
 
 interface Author {
@@ -34,8 +35,47 @@ function timeAgo(date: string) {
   return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 }
 
-function CommentItem({ comment, ideaId, currentUserId }: { comment: Comment; ideaId: string; currentUserId: string | null }) {
+function ReplyItem({ reply, currentUserId, onDelete }: { reply: Reply; currentUserId: string | null; onDelete: (id: string) => void }) {
+  async function handleDelete() {
+    if (!window.confirm("Delete this reply?")) return
+    const res = await fetch(`/api/comments/${reply.id}`, { method: "DELETE" })
+    if (res.ok) onDelete(reply.id)
+  }
+
+  return (
+    <div className="py-3">
+      <div className="flex items-baseline gap-3 mb-1">
+        <span className="font-semibold text-sm text-ink">{reply.author.name}</span>
+        <span className="text-xs text-muted tabular-nums">{timeAgo(reply.createdAt)}</span>
+      </div>
+      <p className="text-sm text-ink leading-relaxed whitespace-pre-wrap">{reply.content}</p>
+      {currentUserId === reply.author.id && (
+        <button
+          onClick={handleDelete}
+          className="mt-1 text-xs text-red-400 hover:text-red-600 transition-colors"
+        >
+          Delete
+        </button>
+      )}
+    </div>
+  )
+}
+
+function CommentItem({ comment, ideaId, currentUserId, onDelete }: { comment: Comment; ideaId: string; currentUserId: string | null; onDelete: (id: string) => void }) {
+  const router = useRouter()
   const [replying, setReplying] = useState(false)
+  const [replies, setReplies] = useState(comment.replies)
+
+  async function handleDelete() {
+    if (!window.confirm("Delete this comment and its replies?")) return
+    const res = await fetch(`/api/comments/${comment.id}`, { method: "DELETE" })
+    if (res.ok) onDelete(comment.id)
+  }
+
+  function handleReplyAdded() {
+    setReplying(false)
+    router.refresh()
+  }
 
   return (
     <div>
@@ -45,12 +85,22 @@ function CommentItem({ comment, ideaId, currentUserId }: { comment: Comment; ide
           <span className="text-xs text-muted tabular-nums">{timeAgo(comment.createdAt)}</span>
         </div>
         <p className="text-sm text-ink leading-relaxed whitespace-pre-wrap">{comment.content}</p>
-        <button
-          onClick={() => setReplying(!replying)}
-          className="mt-2 text-xs text-muted hover:text-accent transition-colors"
-        >
-          {replying ? "Cancel" : "Reply"}
-        </button>
+        <div className="flex gap-3 mt-2">
+          <button
+            onClick={() => setReplying(!replying)}
+            className="text-xs text-muted hover:text-accent transition-colors"
+          >
+            {replying ? "Cancel" : "Reply"}
+          </button>
+          {currentUserId === comment.author.id && (
+            <button
+              onClick={handleDelete}
+              className="text-xs text-red-400 hover:text-red-600 transition-colors"
+            >
+              Delete
+            </button>
+          )}
+        </div>
       </div>
 
       {replying && (
@@ -61,21 +111,20 @@ function CommentItem({ comment, ideaId, currentUserId }: { comment: Comment; ide
             currentUserId={currentUserId}
             autoFocus
             placeholder="Write a reply…"
-            onSuccess={() => setReplying(false)}
+            onSuccess={handleReplyAdded}
           />
         </div>
       )}
 
-      {comment.replies.length > 0 && (
+      {replies.length > 0 && (
         <div className="ml-6 pl-4 border-l border-hairline">
-          {comment.replies.map((reply) => (
-            <div key={reply.id} className="py-3">
-              <div className="flex items-baseline gap-3 mb-1">
-                <span className="font-semibold text-sm text-ink">{reply.author.name}</span>
-                <span className="text-xs text-muted tabular-nums">{timeAgo(reply.createdAt)}</span>
-              </div>
-              <p className="text-sm text-ink leading-relaxed whitespace-pre-wrap">{reply.content}</p>
-            </div>
+          {replies.map((reply) => (
+            <ReplyItem
+              key={reply.id}
+              reply={reply}
+              currentUserId={currentUserId}
+              onDelete={(id) => setReplies((prev) => prev.filter((r) => r.id !== id))}
+            />
           ))}
         </div>
       )}
@@ -89,12 +138,20 @@ interface CommentThreadProps {
   currentUserId: string | null
 }
 
-export function CommentThread({ comments, ideaId, currentUserId }: CommentThreadProps) {
+export function CommentThread({ comments: initialComments, ideaId, currentUserId }: CommentThreadProps) {
+  const [comments, setComments] = useState(initialComments)
+
   return (
     <div>
       <div className="divide-y divide-hairline">
         {comments.map((comment) => (
-          <CommentItem key={comment.id} comment={comment} ideaId={ideaId} currentUserId={currentUserId} />
+          <CommentItem
+            key={comment.id}
+            comment={comment}
+            ideaId={ideaId}
+            currentUserId={currentUserId}
+            onDelete={(id) => setComments((prev) => prev.filter((c) => c.id !== id))}
+          />
         ))}
       </div>
 
