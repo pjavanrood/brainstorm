@@ -9,8 +9,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        base: "#f5f5f0",
+        ink: "#1a1a18",
+        hairline: "#e0e0d8",
+        accent: "#5b5bd6",
+        muted: "#8a8a82",
+      },
+      fontFamily: {
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        serif: ["var(--font-playfair)", "Georgia", "serif"],
+      },
+      maxWidth: {
+        prose: "65ch",
       },
     },
   },
